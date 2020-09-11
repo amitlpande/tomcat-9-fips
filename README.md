@@ -1,7 +1,7 @@
 # Enabling FIPS for Tomcat using Bouncy Castle
 
 There are two way we can enable FIPS for Tomcat.
-The steps below use Bouncy Castle as the JCA/JCE provider.
+The steps below use Bouncy Castle as the FIPS compliant JCA/JCE provider. (https://www.bouncycastle.org/fips-java/)
 
 ## 1. By changing the JRE configuration:
 
@@ -96,3 +96,120 @@ catalina.bat run
 This starts the Tomcat!
 
 Visit `https://localhost:8773` to ensure we see the expected server certificate and upon accepting it, the Tomcat home page.
+
+## 2. By changing the JVM instance level configuration (No JRE level changes):
+
+This approach doesn't need JRE modifications. And IMHO, preferred one because the FIPS configuration is loalized to a specific JVM. Along with Tomcat needing FIPS provider, even application running within the Tomcat might need the other features from this FIPS provider. This also means JRE can be upgraded independently of the applications needing it.
+
+Place the FIPS compliant JCE provider jar (bc-fips-1.0.2.jar) under TOMCAT_BASE/lib to ensure the provider is available in the Tomcat's class path.
+Hook in a custom Tomcat life cycle listener which adds this JCE provider to the Tomcat JVM.
+
+```
+package com.yourorg.tomcat.listener;
+
+import org.apache.catalina.LifecycleListener;
+
+import java.security.Provider;
+import java.security.Security;
+
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+
+public class FIPSSecurityProviderConfigLifecycleListener implements LifecycleListener {
+
+    static {
+        //Get all providers configured in java.security file in JVM (jre\lib\security\java.security)
+        
+        Provider[] providers = Security.getProviders();
+
+        LOG.info("Removing all providers configured in JVM (java.security file) ");
+        if (providers != null && providers.length > 0) {
+            for(int i = 0; i < providers.length; i++ ) {
+                // Don't remove Sun SSL provider - SunJSSE, we still are using SunJSSE but we can remove it if using JSSE provided by Bouncy Castle.
+                if (!providers[i].getName().equalsIgnoreCase("SunJSSE")) {
+                    LOG.info("Removing provider: " +providers[i].getName() + " Info: " +providers[i].getInfo());
+                    // Remove all providers
+                    Security.removeProvider(providers[i].getName());
+                }
+            }
+
+        }
+        //From the documentation - At the moment the configuration string is limited to setting the DRBG. The configuration string
+        //must always start with “C:” and finish with “ENABLE{ALL};”.
+        //In situations where the amount of entropy is constrained the default DRBG for the provider can be
+        //configured to use an DRBG chain based on a SHA-512 SP 800-90A DRBG as the internal DRBG
+        //providing a seed generation. To configure this use:
+        //“C:HYBRID;ENABLE{All};”
+        Security.insertProviderAt(new BouncyCastleFipsProvider("C:HYBRID;ENABLE{All};"),1);
+        //This is equivalent of security.provider.2=com.sun.net.ssl.internal.ssl.Provider BCFIPS
+        //Most likely not needed and can be omitted. 
+        //Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider("BCFIPS"));
+    }
+}
+
+```
+
+
+3. Place the jar file containing above class's class file under TOMCAT_BASE/lib directory.
+
+4. Update the server.xml to hook in this listener during Tomcat startup.
+
+```
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="com.yourorg.tomcat.listener.FIPSSecurityProviderConfigLifecycleListener "/> <!-- Our listener here! -->
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <!--APR library loader. Documentation at /docs/apr.html -->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  .
+  .
+  .
+  .
+  Remainder of server.xml
+
+```
+
+Now the Tomcat is all set to run in FIPS mode!
+
+From the command prompt:
+
+catalina.bat run
+
+This starts the Tomcat!
+
+Visit https://localhost:<port> to ensure we see the expected server certificate and upon accepting the Tomcat home page.
+
+
+Note: Ensure to use FIPS compliant cipher suites else we would run into exceptions like -
+
+08-Sep-2020 14:37:51.086 SEVERE [main] org.apache.catalina.util.LifecycleBase.handleSubClassException Failed to initialize component [Connector[HTTP/1.1-8773]]
+
+               java.lang.ExceptionInInitializerError
+
+                              at sun.security.ssl.SSLCipher.isTransformationAvailable(SSLCipher.java:483)
+
+                              at sun.security.ssl.SSLCipher.<init>(SSLCipher.java:472)
+
+                              at sun.security.ssl.SSLCipher.<clinit>(SSLCipher.java:81)
+
+                              at sun.security.ssl.CipherSuite.<clinit>(CipherSuite.java:67)
+
+                              at sun.security.ssl.SSLContextImpl.getApplicableSupportedCipherSuites(SSLContextImpl.java:345)
+
+                              at sun.security.ssl.SSLContextImpl.access$100(SSLContextImpl.java:46)
+
+                              at sun.security.ssl.SSLContextImpl$AbstractTLSContext.<clinit>(SSLContextImpl.java:577)
+
+                              at java.lang.Class.forName0(Native Method)
+
+                              at java.lang.Class.forName(Class.java:264)
+
+                              at java.security.Provider$Service.getImplClass(Provider.java:1704)
+
+                              at java.security.Provider$Service.newInstance(Provider.java:1662)
