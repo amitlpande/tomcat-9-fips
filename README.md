@@ -13,7 +13,7 @@ The downside of this approach is that we're customizing the JRE configuration he
 Configure the JRE to use the FIPS compliant JCA/JCE provider. Steps here use the provider "BCFIPS” from Bouncy Castle.
 
 
-Edit JRE_HOME/lib/java.security file and add below entries. The existing provider can stay there as it is but we need to ensure that the "BCFIPS" provider takes precedence, so add it in the list before any other providers.
+Edit `JRE_HOME/lib/java.security` file and add below entries. The existing provider can stay there as it is but we need to ensure that the "BCFIPS" provider takes precedence, so add it in the list before any other providers.
 
 We also need to modify the line that lists com.sun.net.ssl.internal.ssl.Provider to list the provider name of the FIPS 140 certified cryptographic provider. Please note that we have already added the class for the provider of the given name (BCFIPS in our case) in this file already.
 
@@ -25,29 +25,30 @@ security.provider.4=sun.security.provider.Sun
 
 We need to add the FIPS compliant cryptographic provider library under: JRE_HOME/lib/ext.
 
-In this case, we put the bc-fips-1.0.2.jar under JRE_HOME/lib/ext.
+In this case, we put the `bc-fips-1.0.2.jar` under JRE_HOME/lib/ext.
 
 
 Importing existing keystores can be done using keytool as below.
 
+```
 keytool -importkeystore -srckeystore <path to source key|trust store file> -srcstoretype <PKCS12|JKS|Or source key store's type> -deststoretype BCFKS -destkeystore <path to the destination key|trust store file> -srcstorepass <source key|trust store password> -srckeypass <destination key|trust store key password for importing private keys> -destkeypass <destination key|trust store key password of the imported private keys> -deststorepass  <destination key|trust store password> -providerpath "path to the bc-fips-1.0.2.jar" -providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
-
+```
 
 To import existing trust store (which has CA, trusted certificates), we need not mention the -srckeypass and -destkeypass arguments as trusted certificate entries are not password-protected.
 
 
 To see if the key|trust store have been successfully imported to a BCFKS format.
 
-
+```
 keytool -list -keystore <Path to BCFKS key|trust store> -storepass <store password>-storetype BCFKS -providername BCFIPS -providerpath "path to the bc-fips-1.0.2.jar" -providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
-  
+```  
 
 We could generate a new BCFIPS key store, trust store using the keytool, we need to use additional parameters -providername (BCFIPS), -providerpath (path to the bc-fips-1.0.2.jar) and -providerclass (org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider)
   
 
-Edit Tomcat's server.xml file:
+Edit Tomcat's `server.xml` file:
 
-The Tomcat Web Server configuration needs to be updated to ensure FIPS compliant APIs are used by Tomcat all the time.
+The Tomcat Web Server configuration needs to be updated to ensure FIPS compliant APIs are used by Tomcat.
 
 e.g. Below server.xml change is needed to ensure Tomcat uses a secure random number generator algorithm provided by BCFIPS. By default, Tomcat uses SHA1PRNG.
 
@@ -91,7 +92,7 @@ Now the Tomcat is all set to run in FIPS mode!
 
 From the command prompt go to Tomcat's bin directory:
 
-catalina.bat run
+`catalina.bat run`
 
 This starts the Tomcat!
 
@@ -169,7 +170,29 @@ Update the server.xml to hook in this listener during Tomcat startup.
   .
   .
   .
+  <Connector SSLEnabled="true" URIEncoding="UTF-8" acceptCount="100"
+allowTrace="false" compression="on" compressionMinSize="10"
+connectionTimeout="20000"
+disableUploadTimeout="true" enableLookups="false"
+maxHttpHeaderSize="8192" noCompressionUserAgents="gozilla, traviata"
+port="8773" protocol="org.apache.coyote.http11.Http11NioProtocol"
+scheme="https" secure="true" useBodyEncodingForURI="true"
+xpoweredBy="false">
+   <SSLHostConfig certificateVerification="optional" truststoreFile="path to bcfks ktrust store created using above keytool commands" truststorePassword="****" truststoreType= "BCFKS" truststoreProvider="BCFIPS">
+       <Certificate certificateKeystoreFile="path to bcfks key store create using above keytool commands" certificateKeystorePassword="****" certificateKeystoreType="BCFKS"
+        certificateKeystoreProvider="BCFIPS"/>
+    </SSLHostConfig>
+</Connector>
   .
+  .
+  .
+<Context path="">
+     <Manager className="org.apache.catalina.session.StandardManager" secureRandomProvider="BCFIPS" secureRandomAlgorithm="DEFAULT" />
+</Context>
+  .
+  .
+  .
+
   Remainder of server.xml
 
 ```
@@ -178,7 +201,7 @@ Now the Tomcat is all set to run in FIPS mode!
 
 From the command prompt:
 
-catalina.bat run
+`catalina.bat run`
 
 This starts the Tomcat!
 
