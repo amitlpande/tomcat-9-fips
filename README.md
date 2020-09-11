@@ -1,10 +1,9 @@
-# tomcat-9-fips
-
+# Enabling FIPS for Tomcat using Bouncy Castle
 
 There are two way we can enable FIPS for Tomcat.
 The steps below use Bouncy Castle as the JCA/JCE provider.
 
-1. By changing the JRE configuration:
+## 1. By changing the JRE configuration:
 
 This approach is typically useful when you have multiple Java applications using the same JRE and you want all the applications to run in FIPS compliant mode, using the same JCA/JCE provider. This way you just bundle up the security provider and update the JRE configuration and don't have to worry bundling up depencencies or changing/updating configuration per each Java application.
 
@@ -18,10 +17,10 @@ Edit JRE_HOME/lib/java.security file and add below entries. The existing provide
 
 We also need to modify the line that lists com.sun.net.ssl.internal.ssl.Provider to list the provider name of the FIPS 140 certified cryptographic provider. Please note that we have already added the class for the provider of the given name (BCFIPS in our case) in this file already.
 
-security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
-security.provider.2=com.sun.net.ssl.internal.ssl.Provider BCFIPS
-security.provider.3=sun.security.rsa.SunRsaSign
-security.provider.4=sun.security.provider.Sun
+security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider  
+security.provider.2=com.sun.net.ssl.internal.ssl.Provider BCFIPS  
+security.provider.3=sun.security.rsa.SunRsaSign  
+security.provider.4=sun.security.provider.Sun  
 
 
 We need to add the FIPS compliant cryptographic provider library under: JRE_HOME/lib/ext.
@@ -82,17 +81,18 @@ In order to enforce BCFIPS is FIPS approved only more, we need to specify a JVM 
 
 To do that, create/edit setenv.bat|sh under TOMCAT_BASE/bin and add the following content (Please use correct syntax for *ix bash scripts).
 
+```
 set JAVA_OPTS=%JAVA_OPTS% -Djava.security.debug=all -org.bouncycastle.fips.approved_only=true
-
+```
 
 ( -Djava.security.debug=all is just for debugging purposes - it helps us see/debug the security providers)
 
 Now the Tomcat is all set to run in FIPS mode!
 
-From the command prompt:
+From the command prompt go to Tomcat's bin directory:
 
 catalina.bat run
 
 This starts the Tomcat!
 
-Visit https://localhost:8773 to ensure we see the expected server certificate and upon accepting it, the Tomcat home page.
+Visit `https://localhost:8773` to ensure we see the expected server certificate and upon accepting it, the Tomcat home page.
