@@ -148,10 +148,9 @@ public class FIPSSecurityProviderConfigLifecycleListener implements LifecycleLis
 
 ```
 
+Place the jar file containing above class's class file under TOMCAT_BASE/lib directory.
 
-3. Place the jar file containing above class's class file under TOMCAT_BASE/lib directory.
-
-4. Update the server.xml to hook in this listener during Tomcat startup.
+Update the server.xml to hook in this listener during Tomcat startup.
 
 ```
 <Server port="8005" shutdown="SHUTDOWN">
