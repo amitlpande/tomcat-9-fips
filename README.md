@@ -1,7 +1,13 @@
 # Enabling FIPS for Tomcat using Bouncy Castle
 
 There are two way we can enable FIPS for Tomcat.
-The steps below use Bouncy Castle as the FIPS compliant JCA/JCE provider. (https://www.bouncycastle.org/fips-java/)
+The steps below use [Bouncy Castle](https://www.bouncycastle.org/fips-java/) as the FIPS compliant JCA/JCE provider.
+
+## Notes:
+
+The below steps are tested on Tomcat 9.0.37 (but should work for other Tomcat versions as well.)
+Configuring a custom JCE/JCA provider doesn't work on JRE8u261 b12 due to https://bugs.openjdk.java.net/browse/JDK-8248505 which is fixed in JRE 8u261 b33.
+Please ensure to use a JRE/JDK version which doesn't have this issue.
 
 ## 1. By changing the JRE configuration:
 
