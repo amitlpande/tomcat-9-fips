@@ -54,12 +54,15 @@ e.g. Below server.xml change is needed to ensure Tomcat uses a secure random num
 
 Service → Engine → Host → Context
 
+```
 <Context path="">
      <Manager className="org.apache.catalina.session.StandardManager" secureRandomProvider="BCFIPS" secureRandomAlgorithm="DEFAULT" />
 </Context>
+```
 
 Also, all the connectors need to be updated to use a BCFIPS compatible key store and trust store (the compatible type, specifically is BCFKS).
 
+```
 <Connector SSLEnabled="true" URIEncoding="UTF-8" acceptCount="100"
 allowTrace="false" compression="on" compressionMinSize="10"
 connectionTimeout="20000"
@@ -73,7 +76,7 @@ xpoweredBy="false">
         certificateKeystoreProvider="BCFIPS"/>
     </SSLHostConfig>
 </Connector>
-
+```
 
 In order to enforce BCFIPS is FIPS approved only more, we need to specify a JVM option.
 
