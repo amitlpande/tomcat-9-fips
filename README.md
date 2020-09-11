@@ -183,11 +183,12 @@ catalina.bat run
 
 This starts the Tomcat!
 
-Visit https://localhost:<port> to ensure we see the expected server certificate and upon accepting the Tomcat home page.
+Visit `https://localhost:<port>` to ensure we see the expected server certificate and upon accepting the Tomcat home page.
 
 
 Note: Ensure to use FIPS compliant cipher suites else we would run into exceptions like -
 
+```
 08-Sep-2020 14:37:51.086 SEVERE [main] org.apache.catalina.util.LifecycleBase.handleSubClassException Failed to initialize component [Connector[HTTP/1.1-8773]]
 
                java.lang.ExceptionInInitializerError
@@ -213,3 +214,4 @@ Note: Ensure to use FIPS compliant cipher suites else we would run into exceptio
                               at java.security.Provider$Service.getImplClass(Provider.java:1704)
 
                               at java.security.Provider$Service.newInstance(Provider.java:1662)
+```
