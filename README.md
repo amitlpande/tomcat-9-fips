@@ -106,7 +106,7 @@ Visit `https://localhost:8773` to ensure we see the expected server certificate 
 
 ## 2. By changing the JVM instance level configuration (No JRE level changes):
 
-This approach doesn't need JRE modifications. And IMHO, preferred one because the FIPS configuration is loalized to a specific JVM. Along with Tomcat needing FIPS provider, even application running within the Tomcat might need the other features from this FIPS provider. This also means JRE can be upgraded independently of the applications needing it.
+This approach doesn't need JRE modifications. And IMHO, preferred one because the FIPS configuration is localized to a specific JVM. Along with Tomcat needing FIPS provider, even application running within the Tomcat might need the other features from this FIPS provider. This also means JRE can be upgraded independently of the applications needing it.
 
 Place the FIPS compliant JCE provider jar (bc-fips-1.0.2.jar) under TOMCAT_BASE/lib to ensure the provider is available in the Tomcat's class path.
 Hook in a custom Tomcat life cycle listener which adds this JCE provider to the Tomcat JVM.
